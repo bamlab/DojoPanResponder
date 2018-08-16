@@ -6,24 +6,44 @@
  * @flow
  */
 
-import React, {Component} from 'react';
-import {Platform, StyleSheet, Text, View} from 'react-native';
+import React, { Component } from "react";
+import { StyleSheet, View, PanResponder, Animated } from "react-native";
 
-const instructions = Platform.select({
-  ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
-  android:
-    'Double tap R on your keyboard to reload,\n' +
-    'Shake or press menu button for dev menu',
-});
+const SQUARE_SIZE = 200;
+const TARGET_SIZE = 250;
+export default class App extends Component<*> {
+  constructor(props) {
+    super(props);
+    this._panResponder = PanResponder.create({
+      onMoveShouldSetResponderCapture: () => true,
+      onMoveShouldSetPanResponderCapture: () => true,
 
-type Props = {};
-export default class App extends Component<Props> {
+      onPanResponderGrant: ({ nativeEvent }, gestureState) => {},
+
+      onPanResponderMove: ({ nativeEvent }, gestureState) => {},
+
+      onPanResponderRelease: ({ nativeEvent }, gestureState) => {}
+    });
+
+    this.state = {
+      translate: new Animated.ValueXY()
+    };
+  }
+
   render() {
+    const { translate } = this.state;
+    const [translateX, translateY] = [translate.x, translate.y];
+    const squareStyle = {
+      transform: [{ translateX }, { translateY }]
+    };
+
     return (
       <View style={styles.container}>
-        <Text style={styles.welcome}>Welcome to React Native!</Text>
-        <Text style={styles.instructions}>To get started, edit App.js</Text>
-        <Text style={styles.instructions}>{instructions}</Text>
+        <Animated.View
+          {...this._panResponder.panHandlers}
+          style={[styles.square, squareStyle]}
+        />
+        <View style={styles.target} />
       </View>
     );
   }
@@ -32,18 +52,21 @@ export default class App extends Component<Props> {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: "#F5FCFF"
   },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
+  square: {
+    backgroundColor: "red",
+    height: SQUARE_SIZE,
+    width: SQUARE_SIZE,
+    zIndex: 100
   },
-  instructions: {
-    textAlign: 'center',
-    color: '#333333',
-    marginBottom: 5,
-  },
+  target: {
+    height: TARGET_SIZE,
+    width: TARGET_SIZE,
+    backgroundColor: "transparent",
+    borderWidth: 2,
+    borderColor: "blue"
+  }
 });

@@ -11,6 +11,16 @@ import { StyleSheet, View, PanResponder, Animated, Alert } from "react-native";
 
 const SQUARE_SIZE = 200;
 const TARGET_SIZE = 250;
+
+const getDistance = changedTouches => {
+  const [x1, y1] = [changedTouches[0].pageX, changedTouches[0].pageY];
+  const [x2, y2] = [changedTouches[1].pageX, changedTouches[1].pageY];
+  return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+};
+
+const getScale = (distanceBefore, distanceAfter) =>
+  1 + (distanceAfter - distanceBefore) / SQUARE_SIZE;
+
 export default class App extends Component<*> {
   constructor(props) {
     super(props);
@@ -24,9 +34,25 @@ export default class App extends Component<*> {
           y: this.state.translate.y._value
         });
         this.state.translate.setValue({ x: 0, y: 0 });
+        if (nativeEvent.changedTouches.length === 2) {
+          this.distance = getDistance(nativeEvent.changedTouches);
+        }
       },
 
       onPanResponderMove: ({ nativeEvent }, gestureState) => {
+        if (nativeEvent.changedTouches.length === 2) {
+          const distance = getDistance(nativeEvent.changedTouches);
+          const scale = getScale(this.distance, distance);
+
+          return Animated.event([
+            {
+              scale: this.state.scale
+            }
+          ])({
+            scale
+          });
+        }
+
         Animated.event([
           {
             dx: this.state.translate.x,
@@ -45,23 +71,27 @@ export default class App extends Component<*> {
     });
 
     this.state = {
-      translate: new Animated.ValueXY()
+      translate: new Animated.ValueXY(),
+      scale: new Animated.Value(1)
     };
 
     target = null;
+    distance = null;
   }
 
   onTargetLayout = ({ nativeEvent: { layout } }) => (this.target = layout);
 
   isSquareInTarget = ({ pageX, pageY, locationX, locationY }) => {
+    const currentScale = this.state.scale._value;
+
     const squareTopLeftCorner = {
-      x: pageX - locationX,
-      y: pageY - locationY
+      x: pageX - locationX * currentScale,
+      y: pageY - locationY * currentScale
     };
 
     const distanceX = squareTopLeftCorner.x - this.target.x;
     const distanceY = squareTopLeftCorner.y - this.target.y;
-    const maxDistance = TARGET_SIZE - SQUARE_SIZE;
+    const maxDistance = TARGET_SIZE - SQUARE_SIZE * currentScale;
 
     return (
       distanceX > 0 &&
@@ -72,10 +102,10 @@ export default class App extends Component<*> {
   };
 
   render() {
-    const { translate } = this.state;
+    const { translate, scale } = this.state;
     const [translateX, translateY] = [translate.x, translate.y];
     const squareStyle = {
-      transform: [{ translateX }, { translateY }]
+      transform: [{ translateX }, { translateY }, { scale }]
     };
 
     return (

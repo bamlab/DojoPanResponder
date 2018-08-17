@@ -19,6 +19,10 @@ export default class App extends Component<*> {
       onMoveShouldSetPanResponderCapture: () => true,
 
       onPanResponderGrant: ({ nativeEvent }, gestureState) => {
+        this.state.translate.setOffset({
+          x: this.state.translate.x._value,
+          y: this.state.translate.y._value
+        });
         this.state.translate.setValue({ x: 0, y: 0 });
       },
 
@@ -31,7 +35,9 @@ export default class App extends Component<*> {
         ])(gestureState);
       },
 
-      onPanResponderRelease: ({ nativeEvent }, gestureState) => {}
+      onPanResponderRelease: ({ nativeEvent }, gestureState) => {
+        this.state.translate.flattenOffset();
+      }
     });
 
     this.state = {

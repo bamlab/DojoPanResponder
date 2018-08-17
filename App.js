@@ -18,9 +18,18 @@ export default class App extends Component<*> {
       onMoveShouldSetResponderCapture: () => true,
       onMoveShouldSetPanResponderCapture: () => true,
 
-      onPanResponderGrant: ({ nativeEvent }, gestureState) => {},
+      onPanResponderGrant: ({ nativeEvent }, gestureState) => {
+        this.state.translate.setValue({ x: 0, y: 0 });
+      },
 
-      onPanResponderMove: ({ nativeEvent }, gestureState) => {},
+      onPanResponderMove: ({ nativeEvent }, gestureState) => {
+        Animated.event([
+          {
+            dx: this.state.translate.x,
+            dy: this.state.translate.y
+          }
+        ])(gestureState);
+      },
 
       onPanResponderRelease: ({ nativeEvent }, gestureState) => {}
     });

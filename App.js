@@ -7,7 +7,7 @@
  */
 
 import React, { Component } from "react";
-import { StyleSheet, View, PanResponder, Animated } from "react-native";
+import { StyleSheet, View, PanResponder, Animated, Alert } from "react-native";
 
 const SQUARE_SIZE = 200;
 const TARGET_SIZE = 250;
@@ -37,13 +37,39 @@ export default class App extends Component<*> {
 
       onPanResponderRelease: ({ nativeEvent }, gestureState) => {
         this.state.translate.flattenOffset();
+        if (this.isSquareInTarget(nativeEvent)) {
+          Alert.alert("Bravo !");
+          this.state.translate.setValue({ x: 0, y: 0 });
+        }
       }
     });
 
     this.state = {
       translate: new Animated.ValueXY()
     };
+
+    target = null;
   }
+
+  onTargetLayout = ({ nativeEvent: { layout } }) => (this.target = layout);
+
+  isSquareInTarget = ({ pageX, pageY, locationX, locationY }) => {
+    const squareTopLeftCorner = {
+      x: pageX - locationX,
+      y: pageY - locationY
+    };
+
+    const distanceX = squareTopLeftCorner.x - this.target.x;
+    const distanceY = squareTopLeftCorner.y - this.target.y;
+    const maxDistance = TARGET_SIZE - SQUARE_SIZE;
+
+    return (
+      distanceX > 0 &&
+      distanceX < maxDistance &&
+      distanceY > 0 &&
+      distanceY < maxDistance
+    );
+  };
 
   render() {
     const { translate } = this.state;
@@ -58,7 +84,7 @@ export default class App extends Component<*> {
           {...this._panResponder.panHandlers}
           style={[styles.square, squareStyle]}
         />
-        <View style={styles.target} />
+        <View style={styles.target} onLayout={this.onTargetLayout} />
       </View>
     );
   }

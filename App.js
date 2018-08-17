@@ -15,7 +15,7 @@ const TARGET_SIZE = 250;
 const getDistance = changedTouches => {
   const [x1, y1] = [changedTouches[0].pageX, changedTouches[0].pageY];
   const [x2, y2] = [changedTouches[1].pageX, changedTouches[1].pageY];
-  return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
+  return { x: Math.abs(x1 - x2), y: Math.abs(y1 - y2) };
 };
 
 const getScale = (distanceBefore, distanceAfter, squareSize) =>
@@ -42,18 +42,26 @@ export default class App extends Component<*> {
       onPanResponderMove: ({ nativeEvent }, gestureState) => {
         if (nativeEvent.changedTouches.length === 2) {
           const distance = getDistance(nativeEvent.changedTouches);
-          const scale = getScale(
-            this.distance,
-            distance,
-            SQUARE_SIZE * this.state.scaleOffset._value
+          const scaleX = getScale(
+            this.distance.x,
+            distance.x,
+            SQUARE_SIZE * this.state.scaleOffset.x._value
+          );
+
+          const scaleY = getScale(
+            this.distance.y,
+            distance.y,
+            SQUARE_SIZE * this.state.scaleOffset.y._value
           );
 
           return Animated.event([
             {
-              scale: this.state.scale
+              scaleX: this.state.scale.x,
+              scaleY: this.state.scale.y
             }
           ])({
-            scale
+            scaleX,
+            scaleY
           });
         }
 
@@ -67,10 +75,11 @@ export default class App extends Component<*> {
 
       onPanResponderRelease: ({ nativeEvent }, gestureState) => {
         this.state.translate.flattenOffset();
-        this.state.scaleOffset.setValue(
-          this.state.scaleOffset._value * this.state.scale._value
-        );
-        this.state.scale.setValue(1);
+        this.state.scaleOffset.setValue({
+          x: this.state.scaleOffset.x._value * this.state.scale.x._value,
+          y: this.state.scaleOffset.y._value * this.state.scale.y._value
+        });
+        this.state.scale.setValue({ x: 1, y: 1 });
         if (this.isSquareInTarget(nativeEvent)) {
           Alert.alert("Bravo !");
           this.state.translate.setValue({ x: 0, y: 0 });
@@ -80,8 +89,8 @@ export default class App extends Component<*> {
 
     this.state = {
       translate: new Animated.ValueXY(),
-      scale: new Animated.Value(1),
-      scaleOffset: new Animated.Value(1)
+      scale: new Animated.ValueXY({ x: 1, y: 1 }),
+      scaleOffset: new Animated.ValueXY({ x: 1, y: 1 })
     };
 
     target = null;
@@ -91,31 +100,39 @@ export default class App extends Component<*> {
   onTargetLayout = ({ nativeEvent: { layout } }) => (this.target = layout);
 
   isSquareInTarget = ({ pageX, pageY, locationX, locationY }) => {
-    const currentScale = this.state.scale._value;
-
     const squareTopLeftCorner = {
-      x: pageX - locationX * currentScale,
-      y: pageY - locationY * currentScale
+      x:
+        pageX -
+        locationX * this.state.scaleOffset.x._value * this.state.scale.x._value,
+      y:
+        pageY -
+        locationY * this.state.scaleOffset.y._value * this.state.scale.y._value
     };
 
     const distanceX = squareTopLeftCorner.x - this.target.x;
     const distanceY = squareTopLeftCorner.y - this.target.y;
-    const maxDistance = TARGET_SIZE - SQUARE_SIZE * currentScale;
+    const maxDistanceX =
+      TARGET_SIZE - SQUARE_SIZE * this.state.scaleOffset.x._value;
+    const maxDistanceY =
+      TARGET_SIZE - SQUARE_SIZE * this.state.scaleOffset.y._value;
 
     return (
       distanceX > 0 &&
-      distanceX < maxDistance &&
+      distanceX < maxDistanceX &&
       distanceY > 0 &&
-      distanceY < maxDistance
+      distanceY < maxDistanceY
     );
   };
 
   render() {
     const { translate, scale, scaleOffset } = this.state;
-    const totalScale = Animated.multiply(scale, scaleOffset);
+    const [scaleX, scaleY] = [
+      Animated.multiply(scale.x, scaleOffset.x),
+      Animated.multiply(scale.y, scaleOffset.y)
+    ];
     const [translateX, translateY] = [translate.x, translate.y];
     const squareStyle = {
-      transform: [{ translateX }, { translateY }, { scale: totalScale }]
+      transform: [{ translateX }, { translateY }, { scaleX }, { scaleY }]
     };
 
     return (

@@ -18,8 +18,8 @@ const getDistance = changedTouches => {
   return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 };
 
-const getScale = (distanceBefore, distanceAfter) =>
-  1 + (distanceAfter - distanceBefore) / SQUARE_SIZE;
+const getScale = (distanceBefore, distanceAfter, squareSize) =>
+  1 + (distanceAfter - distanceBefore) / squareSize;
 
 export default class App extends Component<*> {
   constructor(props) {
@@ -42,7 +42,11 @@ export default class App extends Component<*> {
       onPanResponderMove: ({ nativeEvent }, gestureState) => {
         if (nativeEvent.changedTouches.length === 2) {
           const distance = getDistance(nativeEvent.changedTouches);
-          const scale = getScale(this.distance, distance);
+          const scale = getScale(
+            this.distance,
+            distance,
+            SQUARE_SIZE * this.state.scaleOffset._value
+          );
 
           return Animated.event([
             {
@@ -63,6 +67,10 @@ export default class App extends Component<*> {
 
       onPanResponderRelease: ({ nativeEvent }, gestureState) => {
         this.state.translate.flattenOffset();
+        this.state.scaleOffset.setValue(
+          this.state.scaleOffset._value * this.state.scale._value
+        );
+        this.state.scale.setValue(1);
         if (this.isSquareInTarget(nativeEvent)) {
           Alert.alert("Bravo !");
           this.state.translate.setValue({ x: 0, y: 0 });
@@ -72,7 +80,8 @@ export default class App extends Component<*> {
 
     this.state = {
       translate: new Animated.ValueXY(),
-      scale: new Animated.Value(1)
+      scale: new Animated.Value(1),
+      scaleOffset: new Animated.Value(1)
     };
 
     target = null;
@@ -102,10 +111,11 @@ export default class App extends Component<*> {
   };
 
   render() {
-    const { translate, scale } = this.state;
+    const { translate, scale, scaleOffset } = this.state;
+    const totalScale = Animated.multiply(scale, scaleOffset);
     const [translateX, translateY] = [translate.x, translate.y];
     const squareStyle = {
-      transform: [{ translateX }, { translateY }, { scale }]
+      transform: [{ translateX }, { translateY }, { scale: totalScale }]
     };
 
     return (
